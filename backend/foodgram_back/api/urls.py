@@ -1,13 +1,18 @@
 from django.urls import path, include
+from .views import (TagViewSet, IngridientViewSet,
+                    CustomUserViewSet, SubscribeViewSet)
+from rest_framework import routers
 
-# from rest_framework import routers
 
-# router = routers.DefaultRouter()
-# router.register(r'users', UserViewSet)
+router = routers.DefaultRouter()
+router.register(r'users', CustomUserViewSet, basename='users')
+router.register(r'tags', TagViewSet, basename='tags')
+router.register(r'ingridients', IngridientViewSet, basename='ingridient')
 
 urlpatterns = [
-    # path('signup/', sign_up_view),
-    path('', include('djoser.urls')),
-    path('', include('djoser.urls.jwt')),
-    path('', include('djoser.urls.authtoken')),
+    path('', include(router.urls)),
+    path('auth/', include('djoser.urls.authtoken')),
+    path('users/subscribe/<int:user_id>/',
+         SubscribeViewSet.as_view({'post': 'create', 'delete': 'destroy'}),
+         name='subscribe')
 ]
