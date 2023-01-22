@@ -1,12 +1,13 @@
 from rest_framework import viewsets, status
 from .serializers import (TagSerializer, IngridientSerializer,
-                          SubscribeSerializer)
+                          CustomUserSerializer)
 from rest_framework.response import Response
 from recipes.models import Tag, Ingridient
 from djoser.views import UserViewSet
 from users.models import CustomUser, Subscribe
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
+from rest_framework.decorators import action
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -27,10 +28,21 @@ class IngridientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вью-сет для пользователя."""
-    pass
 
-    # def get_subscriptions(self, request):
-    #     pass
+    @action(detail=False,
+            methods=['get'],
+            url_name='subscriptions',
+            url_path='subscriptions')
+    def get_subscriptions(self, request):
+        queryset = self.get_queryset().filter(
+            subscribing__user=request.user
+        )
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CustomUserSerializer(page,
+                                              context={'request': request},
+                                              many=True)
+            return self.get_paginated_response(serializer.data)
 
 
 class SubscribeViewSet(viewsets.ViewSet):
@@ -42,8 +54,8 @@ class SubscribeViewSet(viewsets.ViewSet):
         if request.user != author:
             try:
                 Subscribe.objects.create(author=author, user=request.user)
-                serializer = SubscribeSerializer(author,
-                                                 context={'request': request})
+                serializer = CustomUserSerializer(author,
+                                                  context={'request': request})
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
             except IntegrityError:

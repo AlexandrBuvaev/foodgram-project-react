@@ -12,7 +12,7 @@ router.register(r'ingridients', IngridientViewSet, basename='ingridient')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
-    path('users/subscribe/<int:user_id>/',
+    path('users/<int:user_id>/subscribe/',
          SubscribeViewSet.as_view({'post': 'create', 'delete': 'destroy'}),
          name='subscribe')
 ]

@@ -36,12 +36,3 @@ class IngridientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingridient
         fields = ('id', 'name', 'measurement_unit')
-
-
-class SubscribeSerializer(CustomUserSerializer):
-    """Сериализатор подписчиков."""
-
-    class Meta:
-        fields = ('email', 'id', 'username', 'first_name',
-                  'last_name')
-        model = CustomUser

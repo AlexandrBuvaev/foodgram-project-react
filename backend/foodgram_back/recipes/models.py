@@ -1,5 +1,5 @@
 from django.db import models
-# from users.models import CustomUser
+from users.models import CustomUser
 
 
 class Tag(models.Model):
@@ -19,24 +19,36 @@ class Tag(models.Model):
         return self.name
 
 
-# class Recipe(models.Model):
-#     """
-#     Модель рецепта.
-#     """
-#     author = models.ForeignKey(
-#         CustomUser, "Автор",
-#         on_delete=models.CASCADE,
-#         related_name='recipes'
-#     )
-#     name = models.CharField("Название", max_length=150)
-#     image = models.ImageField(
-#         "Картинка", upload_to='recipes/images',
-#     )
-#     text = models.TextField("Текстовое описание", max_length=150)
-#     tag = models.ForeignKey(Tag, "Тег", on_delete=models.CASCADE)
-#     ingridients = models.ManyToManyField('Ingridients',
-#                                          through='RecipeIngridients')
-#     coocking_time = models.IntegerField("Время приготовления")
+class Recipe(models.Model):
+    """
+    Модель рецепта.
+    """
+    ingridients = models.ManyToManyField(
+        'Ingridient',
+        through='RecipeIngridients',
+        through_fields=('recipe', 'ingridient')
+    )
+    name = models.CharField("Название", max_length=200)
+    author = models.ForeignKey(
+        CustomUser,
+        verbose_name='Автор',
+        related_name='recipes',
+        on_delete=models.CASCADE
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        through='TagRecipe'
+    )
+    image = models.ImageField(
+        "Изображение",
+        upload_to='recipes/images/',
+    )
+    cooking_time = models.IntegerField("Время приготовления.")
+
+    class Meta:
+        ordering = ('-pk',)
+        verbose_name = "Рецепт"
+        verbose_name_plural = "Рецепты"
 
 
 class Ingridient(models.Model):
@@ -53,7 +65,15 @@ class Ingridient(models.Model):
     def __str__(self):
         return self.name
 
-# class RecipeIngridients(models.Model):
-#     """Связывающая модель рецептов и ингридиентов."""
-#     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-#     ingridient = models.ForeignKey(Ingridient, on_delete=models.CASCADE)
+
+class RecipeIngridients(models.Model):
+    """Связывающая модель рецептов и ингридиентов."""
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    ingridient = models.ForeignKey(Ingridient, on_delete=models.CASCADE)
+    count = models.IntegerField("Количество")
+
+
+class TagRecipe(models.Model):
+    """Связывающая модель для тега с рецептами."""
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
