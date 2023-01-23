@@ -1,8 +1,8 @@
 from rest_framework import viewsets, status
 from .serializers import (TagSerializer, IngridientSerializer,
-                          CustomUserSerializer)
+                          CustomUserSerializer, RecipeSerializer)
 from rest_framework.response import Response
-from recipes.models import Tag, Ingridient
+from recipes.models import Tag, Ingridient, Recipe
 from djoser.views import UserViewSet
 from users.models import CustomUser, Subscribe
 from django.shortcuts import get_object_or_404
@@ -24,6 +24,12 @@ class IngridientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Ingridient.objects.all()
     serializer_class = IngridientSerializer
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    """Вью-сет для рецептов."""
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
 
 
 class CustomUserViewSet(UserViewSet):

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from recipes.models import Tag, Ingridient
+from recipes.models import Tag, Ingridient, Recipe
 from users.models import CustomUser
 from djoser.serializers import UserSerializer
 
@@ -36,3 +36,17 @@ class IngridientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingridient
         fields = ('id', 'name', 'measurement_unit')
+
+
+class RecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор рецептов."""
+    author = CustomUserSerializer(read_only=True)
+    tags = TagSerializer(read_only=True, many=True)
+    ingridients = IngridientSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'tags', 'author', 'ingridients',
+            'image', 'name', 'text', 'cooking_time',
+        )

@@ -1,6 +1,7 @@
 from django.urls import path, include
 from .views import (TagViewSet, IngridientViewSet,
-                    CustomUserViewSet, SubscribeViewSet)
+                    CustomUserViewSet, SubscribeViewSet,
+                    RecipeViewSet)
 from rest_framework import routers
 
 
@@ -8,6 +9,7 @@ router = routers.DefaultRouter()
 router.register(r'users', CustomUserViewSet, basename='users')
 router.register(r'tags', TagViewSet, basename='tags')
 router.register(r'ingridients', IngridientViewSet, basename='ingridient')
+router.register(r'recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
     path('', include(router.urls)),

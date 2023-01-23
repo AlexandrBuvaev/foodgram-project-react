@@ -35,6 +35,7 @@ class Recipe(models.Model):
         related_name='recipes',
         on_delete=models.CASCADE
     )
+    text = models.TextField("Описание", max_length=250)
     tags = models.ManyToManyField(
         Tag,
         through='TagRecipe'
@@ -49,6 +50,9 @@ class Recipe(models.Model):
         ordering = ('-pk',)
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
+
+    def __str__(self):
+        return self.name
 
 
 class Ingridient(models.Model):
