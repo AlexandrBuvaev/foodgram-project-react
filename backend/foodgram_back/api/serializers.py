@@ -38,11 +38,21 @@ class IngridientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
+class AmountIngridientSerializer(IngridientSerializer):
+    """Сериализатор для добавления ингредиентов в рецепт."""
+    amount = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = Ingridient
+        fields = (
+            'id', 'amount'
+        )
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
-    tags = TagSerializer(read_only=True, many=True)
-    ingridients = IngridientSerializer(read_only=True, many=True)
+    ingridients = AmountIngridientSerializer(many=True)
 
     class Meta:
         model = Recipe

@@ -23,11 +23,7 @@ class Recipe(models.Model):
     """
     Модель рецепта.
     """
-    ingridients = models.ManyToManyField(
-        'Ingridient',
-        through='RecipeIngridients',
-        through_fields=('recipe', 'ingridient')
-    )
+    ingridients = models.ManyToManyField('AmountIngridients')
     name = models.CharField("Название", max_length=200)
     author = models.ForeignKey(
         CustomUser,
@@ -36,13 +32,12 @@ class Recipe(models.Model):
         on_delete=models.CASCADE
     )
     text = models.TextField("Описание", max_length=250)
-    tags = models.ManyToManyField(
-        Tag,
-        through='TagRecipe'
-    )
+    tags = models.ManyToManyField(Tag)
     image = models.ImageField(
         "Изображение",
         upload_to='recipes/images/',
+        null=True,
+        default=None
     )
     cooking_time = models.IntegerField("Время приготовления.")
 
@@ -70,14 +65,8 @@ class Ingridient(models.Model):
         return self.name
 
 
-class RecipeIngridients(models.Model):
+class AmountIngridients(models.Model):
     """Связывающая модель рецептов и ингридиентов."""
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    ingridient = models.ForeignKey(Ingridient, on_delete=models.CASCADE)
-    count = models.IntegerField("Количество")
-
-
-class TagRecipe(models.Model):
-    """Связывающая модель для тега с рецептами."""
-    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    ingridient = models.ForeignKey(Ingridient,
+                                   on_delete=models.CASCADE)
+    amount = models.PositiveIntegerField()

@@ -31,6 +31,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
 
+    def perform_create(self, serializer):
+        return serializer.save(author=self.request.user)
+
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вью-сет для пользователя."""
