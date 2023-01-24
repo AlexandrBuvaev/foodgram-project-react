@@ -1,8 +1,20 @@
+import base64
+from django.core.files.base import ContentFile
 from rest_framework import serializers
 
-from recipes.models import Tag, Ingridient, Recipe
+from recipes.models import Tag, Ingridient, Recipe, AmountIngridients
 from users.models import CustomUser
 from djoser.serializers import UserSerializer
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+
+        return super().to_internal_value(data)
 
 
 class CustomUserSerializer(UserSerializer):
@@ -53,6 +65,11 @@ class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
     ingridients = AmountIngridientSerializer(many=True)
+    image = Base64ImageField(required=False, allow_null=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
 
     class Meta:
         model = Recipe
@@ -60,3 +77,14 @@ class RecipeSerializer(serializers.ModelSerializer):
             'tags', 'author', 'ingridients',
             'image', 'name', 'text', 'cooking_time',
         )
+
+    def create(self, validated_data):
+        ingridients = validated_data.pop('ingridients')
+        recipe = Recipe.objects.create(**validated_data)
+        obj = [AmountIngridients(
+            ingridient=Ingridient.objects.get(id=ing['id']),
+            recipe=recipe,
+            amount=ing['amount']
+        ) for ing in ingridients]
+        AmountIngridients.objects.bulk_create(obj)
+        return recipe
