@@ -5,6 +5,7 @@ from rest_framework import serializers
 from recipes.models import Tag, Ingridient, Recipe, AmountIngridients
 from users.models import CustomUser
 from djoser.serializers import UserSerializer
+from django.shortcuts import get_object_or_404
 
 
 class Base64ImageField(serializers.ImageField):
@@ -50,41 +51,112 @@ class IngridientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
-class AmountIngridientSerializer(IngridientSerializer):
+class AmountIngridientSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления ингредиентов в рецепт."""
-    amount = serializers.IntegerField(required=True)
+    id = serializers.IntegerField()
 
     class Meta:
-        model = Ingridient
+        model = AmountIngridients
         fields = (
             'id', 'amount'
         )
 
 
-class RecipeSerializer(serializers.ModelSerializer):
+class FullAmountIngridientSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления ингредиентов в рецепт."""
+    id = serializers.IntegerField(source='ingridient.id')
+    name = serializers.CharField(source='ingridient.name')
+    measurement_unit = serializers.CharField(
+        source='ingridient.measurement_unit'
+    )
+
+    class Meta:
+        model = AmountIngridients
+        fields = (
+            'id', 'name', 'measurement_unit', 'amount'
+        )
+
+
+class FullRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор рецептов."""
+    author = CustomUserSerializer(read_only=True)
+    ingridients = FullAmountIngridientSerializer(read_only=True, many=True)
+    image = Base64ImageField(required=False, allow_null=True)
+    tags = TagSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'tags', 'ingridients', 'author',
+            'image', 'name', 'text', 'cooking_time',
+        )
+
+
+class RecordRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
     ingridients = AmountIngridientSerializer(many=True)
     image = Base64ImageField(required=False, allow_null=True)
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(),
-        many=True
+        queryset=Tag.objects.all(), many=True
     )
 
     class Meta:
         model = Recipe
         fields = (
-            'tags', 'author', 'ingridients',
+            'tags', 'ingridients', 'author',
             'image', 'name', 'text', 'cooking_time',
         )
 
     def create(self, validated_data):
+        print(validated_data)
         ingridients = validated_data.pop('ingridients')
+        tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-        obj = [AmountIngridients(
-            ingridient=Ingridient.objects.get(id=ing['id']),
-            recipe=recipe,
-            amount=ing['amount']
-        ) for ing in ingridients]
-        AmountIngridients.objects.bulk_create(obj)
+        amount_ingridients = []
+        for new_ingridient in ingridients:
+            ingridient = get_object_or_404(
+                Ingridient,
+                pk=new_ingridient['id']
+            )
+            amount_ingridient, created = (
+                AmountIngridients.objects.get_or_create(
+                    ingridient=ingridient,
+                    amount=new_ingridient['amount']
+                )
+            )
+            if created:
+                amount_ingridient.save()
+            amount_ingridients.append(amount_ingridient)
+        recipe.ingridients.set(amount_ingridients)
+        recipe.tags.set(tags)
         return recipe
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.image = validated_data.get('image', instance.image)
+        if 'tags' in validated_data:
+            tags_data = validated_data.pop('tags')
+            instance.tags.set(tags_data)
+        if 'ingridients' in validated_data:
+            ingridients = validated_data.pop('ingridients')
+            amount_ingridients = []
+            for new_ingridient in ingridients:
+                ingridient = get_object_or_404(
+                    Ingridient,
+                    pk=new_ingridient['id']
+                )
+                amount_ingridient, created = (
+                    AmountIngridients.objects.get_or_create(
+                        ingridient=ingridient,
+                        amount=new_ingridient['amount']
+                    )
+                )
+                if created:
+                    amount_ingridient.save()
+                amount_ingridients.append(amount_ingridient)
+            instance.ingridients.set(amount_ingridients)
+
+        instance.save()
+        return instance

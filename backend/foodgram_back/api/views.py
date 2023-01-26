@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from .serializers import (TagSerializer, IngridientSerializer,
-                          CustomUserSerializer, RecipeSerializer)
+                          CustomUserSerializer, RecordRecipeSerializer,
+                          FullRecipeSerializer)
 from rest_framework.response import Response
 from recipes.models import Tag, Ingridient, Recipe
 from djoser.views import UserViewSet
@@ -29,7 +30,12 @@ class IngridientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вью-сет для рецептов."""
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    serializer_class = FullRecipeSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'create' or self.action == 'partial_update':
+            return RecordRecipeSerializer
+        return FullRecipeSerializer
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
