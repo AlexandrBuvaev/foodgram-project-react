@@ -1,7 +1,7 @@
 from django.urls import path, include
 from .views import (TagViewSet, IngridientViewSet,
                     CustomUserViewSet, SubscribeViewSet,
-                    RecipeViewSet)
+                    RecipeViewSet, FavoriteRecipesViewSet)
 from rest_framework import routers
 
 
@@ -16,5 +16,12 @@ urlpatterns = [
     path('auth/', include('djoser.urls.authtoken')),
     path('users/<int:user_id>/subscribe/',
          SubscribeViewSet.as_view({'post': 'create', 'delete': 'destroy'}),
-         name='subscribe')
+         name='subscribe'),
+    path(
+        'recipes/<int:recipe_id>/favorite/',
+        FavoriteRecipesViewSet.as_view(
+            {'post': 'create', 'delete': 'destroy'}
+        ),
+        name='favorite'
+    )
 ]

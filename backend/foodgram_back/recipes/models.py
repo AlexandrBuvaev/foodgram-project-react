@@ -85,3 +85,32 @@ class AmountIngridients(models.Model):
     class Meta:
         verbose_name = "Количество ингредиентов"
         verbose_name_plural = "Количества ингериентов в рецептах"
+
+
+class FavoriteRecipes(models.Model):
+    """Избранные рецепты."""
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorite_recipes',
+        verbose_name='Рецепт'
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='favorite_recipes',
+        verbose_name='Пользователь'
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name = 'Избранное'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='unique_user_favorite_recipe'
+            )
+        ]
+
+    def __str__(self):
+        return self.recipe

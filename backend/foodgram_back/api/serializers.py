@@ -77,19 +77,38 @@ class FullAmountIngridientSerializer(serializers.ModelSerializer):
         )
 
 
+class SmallRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор рецептов."""
+    image = Base64ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'image', 'name', 'text', 'cooking_time',
+        )
+
+
 class FullRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
     ingridients = FullAmountIngridientSerializer(read_only=True, many=True)
     image = Base64ImageField(required=False, allow_null=True)
     tags = TagSerializer(many=True, read_only=True)
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
             'tags', 'ingridients', 'author',
             'image', 'name', 'text', 'cooking_time',
+            'is_favorited'
         )
+
+    def get_is_favorited(self, obj):
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return user.favorite_recipes.filter(recipe=obj).exists()
 
 
 class RecordRecipeSerializer(serializers.ModelSerializer):

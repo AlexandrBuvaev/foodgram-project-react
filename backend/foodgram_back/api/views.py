@@ -1,9 +1,9 @@
 from rest_framework import viewsets, status
 from .serializers import (TagSerializer, IngridientSerializer,
                           CustomUserSerializer, RecordRecipeSerializer,
-                          FullRecipeSerializer)
+                          FullRecipeSerializer, SmallRecipeSerializer)
 from rest_framework.response import Response
-from recipes.models import Tag, Ingridient, Recipe
+from recipes.models import Tag, Ingridient, Recipe, FavoriteRecipes
 from djoser.views import UserViewSet
 from users.models import CustomUser, Subscribe
 from django.shortcuts import get_object_or_404
@@ -86,3 +86,35 @@ class SubscribeViewSet(viewsets.ViewSet):
             user=request.user, author__id=user_id).delete()
         return Response({"message": "Подписка удалена."},
                         status=status.HTTP_204_NO_CONTENT)
+
+
+class FavoriteRecipesViewSet(viewsets.ViewSet):
+    """Добавление рецепта в избранное."""
+
+    def create(self, request, recipe_id):
+        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        try:
+            FavoriteRecipes.objects.create(
+                recipe=recipe, user=request.user
+            )
+            serializer = SmallRecipeSerializer(
+                recipe, context={'request': request}
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        except IntegrityError:
+            return Response(
+                {"message": 'Нельзя добавить рецепт в избранное дважды.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def destroy(self, request, recipe_id):
+        FavoriteRecipes.objects.filter(
+            user=request.user, recipe__id=recipe_id
+        ).delete()
+        return Response(
+            {'message': 'Рецепт удален из избранного.'},
+            status=status.HTTP_204_NO_CONTENT
+        )
