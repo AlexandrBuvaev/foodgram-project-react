@@ -3,7 +3,8 @@ from .serializers import (TagSerializer, IngridientSerializer,
                           CustomUserSerializer, RecordRecipeSerializer,
                           FullRecipeSerializer, SmallRecipeSerializer)
 from rest_framework.response import Response
-from recipes.models import Tag, Ingridient, Recipe, FavoriteRecipes
+from recipes.models import (Tag, Ingridient, Recipe, FavoriteRecipes,
+                            ShoppingCart)
 from djoser.views import UserViewSet
 from users.models import CustomUser, Subscribe
 from django.shortcuts import get_object_or_404
@@ -112,6 +113,37 @@ class FavoriteRecipesViewSet(viewsets.ViewSet):
 
     def destroy(self, request, recipe_id):
         FavoriteRecipes.objects.filter(
+            user=request.user, recipe__id=recipe_id
+        ).delete()
+        return Response(
+            {'message': 'Рецепт удален из избранного.'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class ShoppingCartRecipesViewSet(viewsets.ViewSet):
+    """Добавление и удаление рецептов в корзину."""
+    def create(self, request, recipe_id):
+        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        try:
+            ShoppingCart.objects.create(
+                recipe=recipe, user=request.user
+            )
+            serializer = SmallRecipeSerializer(
+                recipe, context={'request': request}
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        except IntegrityError:
+            return Response(
+                {"message": 'Нельзя добавить рецепт в избранное дважды.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def destroy(self, request, recipe_id):
+        ShoppingCart.objects.filter(
             user=request.user, recipe__id=recipe_id
         ).delete()
         return Response(

@@ -1,7 +1,8 @@
 from django.urls import path, include
 from .views import (TagViewSet, IngridientViewSet,
                     CustomUserViewSet, SubscribeViewSet,
-                    RecipeViewSet, FavoriteRecipesViewSet)
+                    RecipeViewSet, FavoriteRecipesViewSet,
+                    ShoppingCartRecipesViewSet)
 from rest_framework import routers
 
 
@@ -23,5 +24,12 @@ urlpatterns = [
             {'post': 'create', 'delete': 'destroy'}
         ),
         name='favorite'
+    ),
+    path(
+        'recipes/<int:recipe_id>/shopping_cart/',
+        ShoppingCartRecipesViewSet.as_view(
+            {'post': 'create', 'delete': 'destroy'}
+        ),
+        name='shopping_cart'
     )
 ]
