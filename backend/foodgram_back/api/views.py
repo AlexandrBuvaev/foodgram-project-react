@@ -1,15 +1,19 @@
+from io import StringIO
 from rest_framework import viewsets, status
 from .serializers import (TagSerializer, IngridientSerializer,
                           CustomUserSerializer, RecordRecipeSerializer,
-                          FullRecipeSerializer, SmallRecipeSerializer)
+                          FullRecipeSerializer, SmallRecipeSerializer,
+                          SubscribeSerializer)
 from rest_framework.response import Response
 from recipes.models import (Tag, Ingridient, Recipe, FavoriteRecipes,
-                            ShoppingCart)
+                            ShoppingCart, AmountIngridients)
 from djoser.views import UserViewSet
 from users.models import CustomUser, Subscribe
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
 from rest_framework.decorators import action
+from django.db.models import Sum
+from django.http import HttpResponse
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -41,6 +45,40 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
 
+    @action(
+        detail=False,
+        methods=['get'],
+        url_name='download_shopping_cart',
+        url_path='download_shopping_cart'
+    )
+    def download_shopping_cart(self, request):
+        queryset = AmountIngridients.objects.filter(
+            recipe__shopping_cart__user=self.request.user
+        )
+        shopping_cart = queryset.values('ingridient').annotate(
+            total_amount=Sum('amount')
+        )
+        shopping_cart_file = StringIO()
+        for position in shopping_cart:
+            position_ingridient = get_object_or_404(
+                Ingridient,
+                pk=position['ingridient']
+            )
+            position_amount = position['total_amount']
+            shopping_cart_file.write(
+                f' *  {position_ingridient.name.title()}'
+                f' ({position_ingridient.measurement_unit})'
+                f' - {position_amount}' + '\n'
+            )
+        response = HttpResponse(
+            shopping_cart_file.getvalue(),
+            content_type='text'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename="%s"' % 'shopping_list.txt'
+        )
+        return response
+
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вью-сет для пользователя."""
@@ -55,9 +93,9 @@ class CustomUserViewSet(UserViewSet):
         )
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = CustomUserSerializer(page,
-                                              context={'request': request},
-                                              many=True)
+            serializer = SubscribeSerializer(page,
+                                             context={'request': request},
+                                             many=True)
             return self.get_paginated_response(serializer.data)
 
 

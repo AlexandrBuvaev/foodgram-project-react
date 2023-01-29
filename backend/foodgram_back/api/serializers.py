@@ -35,6 +35,35 @@ class CustomUserSerializer(UserSerializer):
         return user.subscriber.filter(author=obj).exists()
 
 
+class SubscribeSerializer(CustomUserSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'recipes', 'recipes_count'
+        )
+
+    def get_recipes(self, obj):
+        recipes_limit = (
+            self.context['request'].query_params.get('recipes_limit')
+        )
+        recipes = obj.recipes.all()
+        if recipes_limit is not None:
+            recipes_limit = int(recipes_limit)
+            serializer = SmallRecipeSerializer(
+                recipes[:recipes_limit], many=True
+            )
+        else:
+            serializer = SmallRecipeSerializer(recipes)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
+
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор тегов."""
 
