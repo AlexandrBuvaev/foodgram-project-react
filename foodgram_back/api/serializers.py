@@ -120,7 +120,7 @@ class SmallRecipeSerializer(serializers.ModelSerializer):
 class FullRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
-    ingridients = FullAmountIngridientSerializer(read_only=True, many=True)
+    ingredients = FullAmountIngridientSerializer(read_only=True, many=True)
     image = Base64ImageField(required=False, allow_null=True)
     tags = TagSerializer(many=True, read_only=True)
     is_favorited = serializers.SerializerMethodField()
@@ -129,7 +129,7 @@ class FullRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'tags', 'ingridients', 'is_favorited',
+            'tags', 'ingredients', 'is_favorited',
             'is_in_shopping_cart', 'author',
             'image', 'name', 'text', 'cooking_time',
         )
@@ -170,7 +170,7 @@ def set_ingredients(data):
 class RecordRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     author = CustomUserSerializer(read_only=True)
-    ingridients = AmountIngridientSerializer(many=True)
+    ingredients = AmountIngridientSerializer(many=True)
     image = Base64ImageField(required=False, allow_null=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True
@@ -179,12 +179,12 @@ class RecordRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'tags', 'ingridients', 'author',
+            'tags', 'ingredients', 'author',
             'image', 'name', 'text', 'cooking_time',
         )
 
     def create(self, validated_data):
-        ingridients = validated_data.pop('ingridients')
+        ingridients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.ingridients.set(set_ingredients(data=ingridients))
@@ -199,7 +199,7 @@ class RecordRecipeSerializer(serializers.ModelSerializer):
             tags_data = validated_data.pop('tags')
             instance.tags.set(tags_data)
         if 'ingridients' in validated_data:
-            ingridients = validated_data.pop('ingridients')
+            ingridients = validated_data.pop('ingredients')
             instance.ingridients.set(set_ingredients(data=ingridients))
 
         instance.save()

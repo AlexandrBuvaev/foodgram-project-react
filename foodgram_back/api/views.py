@@ -13,6 +13,8 @@ from recipes.models import (AmountIngridients, FavoriteRecipes, Ingridient,
                             Recipe, ShoppingCart, Tag)
 from users.models import CustomUser, Subscribe
 
+from .filters import IngridientsFilterBackend
+from .pagination import PageLimitPagination
 from .serializers import (CustomUserSerializer, FullRecipeSerializer,
                           IngridientSerializer, RecordRecipeSerializer,
                           SmallRecipeSerializer, SubscribeSerializer,
@@ -33,12 +35,16 @@ class IngridientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Ingridient.objects.all()
     serializer_class = IngridientSerializer
+    filter_backends = [IngridientsFilterBackend, ]
+    search_filter = ('^name', 'name')
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вью-сет для рецептов."""
     queryset = Recipe.objects.all()
     serializer_class = FullRecipeSerializer
+    # filter_backends = (RecipeFilterBackend, )
+    pagination_class = PageLimitPagination
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
@@ -85,6 +91,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вью-сет для пользователя."""
+    pagination_class = PageLimitPagination
 
     @action(detail=False,
             methods=['get'],
