@@ -3,7 +3,7 @@ import csv
 from django.conf import settings
 from django.core.management import BaseCommand
 
-from recipes.models import Ingridient
+from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
@@ -17,6 +17,6 @@ class Command(BaseCommand):
             encoding='utf-8'
         ) as file:
             reader = csv.DictReader(file)
-            Ingridient.objects.bulk_create(
-                Ingridient(**data) for data in reader)
+            Ingredient.objects.bulk_create(
+                Ingredient(**data) for data in reader)
         self.stdout.write(self.style.SUCCESS('Все ингридиенты загружены!'))

@@ -1,7 +1,7 @@
 from rest_framework import filters
 
 
-class IngridientsFilterBackend(filters.SearchFilter):
+class IngredientsFilterBackend(filters.SearchFilter):
     search_param = 'name'
 
 

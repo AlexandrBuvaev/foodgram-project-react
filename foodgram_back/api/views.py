@@ -9,14 +9,14 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from recipes.models import (AmountIngridients, FavoriteRecipes, Ingridient,
+from recipes.models import (AmountIngredients, FavoriteRecipes, Ingredient,
                             Recipe, ShoppingCart, Tag)
 from users.models import CustomUser, Subscribe
 
-from .filters import IngridientsFilterBackend
+from .filters import IngredientsFilterBackend, RecipeFilterBackend
 from .pagination import PageLimitPagination
 from .serializers import (CustomUserSerializer, FullRecipeSerializer,
-                          IngridientSerializer, RecordRecipeSerializer,
+                          IngredientSerializer, RecordRecipeSerializer,
                           SmallRecipeSerializer, SubscribeSerializer,
                           TagSerializer)
 
@@ -27,15 +27,15 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TagSerializer
 
 
-class IngridientViewSet(viewsets.ReadOnlyModelViewSet):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Вьюсет для ингридиентов.
     Доступны только GET запросы
     на /ingridients/ и /ingridients/{pk}/.
     """
-    queryset = Ingridient.objects.all()
-    serializer_class = IngridientSerializer
-    filter_backends = [IngridientsFilterBackend, ]
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    filter_backends = [IngredientsFilterBackend, ]
     search_filter = ('^name', 'name')
 
 
@@ -43,7 +43,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Вью-сет для рецептов."""
     queryset = Recipe.objects.all()
     serializer_class = FullRecipeSerializer
-    # filter_backends = (RecipeFilterBackend, )
+    filter_backends = (RecipeFilterBackend, )
     pagination_class = PageLimitPagination
 
     def get_serializer_class(self):
@@ -61,22 +61,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_path='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
-        queryset = AmountIngridients.objects.filter(
+        queryset = AmountIngredients.objects.filter(
             recipe__shopping_cart__user=self.request.user
         )
-        shopping_cart = queryset.values('ingridient').annotate(
+        shopping_cart = queryset.values('ingredient').annotate(
             total_amount=Sum('amount')
         )
         shopping_cart_file = StringIO()
         for position in shopping_cart:
-            position_ingridient = get_object_or_404(
-                Ingridient,
-                pk=position['ingridient']
+            position_ingredient = get_object_or_404(
+                Ingredient,
+                pk=position['ingredient']
             )
             position_amount = position['total_amount']
             shopping_cart_file.write(
-                f' *  {position_ingridient.name.title()}'
-                f' ({position_ingridient.measurement_unit})'
+                f' *  {position_ingredient.name.title()}'
+                f' ({position_ingredient.measurement_unit})'
                 f' - {position_amount}' + '\n'
             )
         response = HttpResponse(
