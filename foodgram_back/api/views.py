@@ -7,6 +7,9 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 
 from recipes.models import (AmountIngredients, FavoriteRecipes, Ingredient,
@@ -15,6 +18,7 @@ from users.models import CustomUser, Subscribe
 
 from .filters import IngredientsFilterBackend, RecipeFilterBackend
 from .pagination import PageLimitPagination
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (CustomUserSerializer, FullRecipeSerializer,
                           IngredientSerializer, RecordRecipeSerializer,
                           SmallRecipeSerializer, SubscribeSerializer,
@@ -35,8 +39,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = [IngredientsFilterBackend, ]
-    search_filter = ('^name', 'name')
+    filter_backends = (IngredientsFilterBackend, )
+    search_fields = ('^name', 'name')
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -45,6 +49,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = FullRecipeSerializer
     filter_backends = (RecipeFilterBackend, )
     pagination_class = PageLimitPagination
+    permission_classes = (IsAuthorOrReadOnly, )
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
@@ -58,7 +63,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=['get'],
         url_name='download_shopping_cart',
-        url_path='download_shopping_cart'
+        url_path='download_shopping_cart',
+        permission_classes=(IsAuthenticated,),
     )
     def download_shopping_cart(self, request):
         queryset = AmountIngredients.objects.filter(
@@ -92,11 +98,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class CustomUserViewSet(UserViewSet):
     """Кастомный вью-сет для пользователя."""
     pagination_class = PageLimitPagination
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     @action(detail=False,
             methods=['get'],
             url_name='subscriptions',
-            url_path='subscriptions')
+            url_path='subscriptions',
+            permission_classes=(IsAuthenticated,),
+            )
     def get_subscriptions(self, request):
         queryset = self.get_queryset().filter(
             subscribing__user=request.user
@@ -111,6 +120,7 @@ class CustomUserViewSet(UserViewSet):
 
 class SubscribeViewSet(viewsets.ViewSet):
     """Вьюсет для создания и удаления подписки."""
+    permission_classes = (IsAuthenticated,)
 
     def create(self, request, user_id):
         """Создание подписки."""
@@ -139,6 +149,7 @@ class SubscribeViewSet(viewsets.ViewSet):
 
 class FavoriteRecipesViewSet(viewsets.ViewSet):
     """Добавление рецепта в избранное."""
+    permission_classes = (IsAuthenticated,)
 
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
@@ -171,6 +182,8 @@ class FavoriteRecipesViewSet(viewsets.ViewSet):
 
 class ShoppingCartRecipesViewSet(viewsets.ViewSet):
     """Добавление и удаление рецептов в корзину."""
+    permission_classes = (IsAuthenticated,)
+
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         try:

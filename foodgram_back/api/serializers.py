@@ -129,7 +129,7 @@ class FullRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'tags', 'ingredients', 'is_favorited',
+            'id', 'tags', 'ingredients', 'is_favorited',
             'is_in_shopping_cart', 'author',
             'image', 'name', 'text', 'cooking_time',
         )
