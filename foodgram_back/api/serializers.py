@@ -3,9 +3,8 @@ import base64
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
-from rest_framework import serializers
-
 from recipes.models import AmountIngredients, Ingredient, Recipe, Tag
+from rest_framework import serializers
 from users.models import CustomUser
 
 
@@ -48,16 +47,16 @@ class SubscribeSerializer(CustomUserSerializer):
         )
 
     def get_recipes(self, obj):
-        recipes_limit = (
-            self.context['request'].query_params.get('recipes_limit')
+        recipes_limit = int(
+            self.context['request'].query_params.get('recipes_limit', 3)
         )
         recipes = obj.recipes.all()
-        if recipes_limit is not None:
+        if isinstance(recipes_limit, int):
             serializer = SmallRecipeSerializer(
-                recipes[:int(recipes_limit)], many=True
-            )
+                recipes[:recipes_limit], many=True)
         else:
-            serializer = SmallRecipeSerializer(recipes)
+            raise serializers.ValidationError(
+                "recipes_limit должно быть  целым числом.")
         return serializer.data
 
     def get_recipes_count(self, obj):
@@ -108,12 +107,11 @@ class FullAmountIngredientSerializer(serializers.ModelSerializer):
 
 class SmallRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
-    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Recipe
         fields = (
-            'id', 'image', 'name', 'text', 'cooking_time',
+            'id', 'image', 'name', 'cooking_time',
         )
 
 
@@ -161,8 +159,7 @@ def set_ingredients(data):
                 amount=new_ingredient['amount']
             )
         )
-        if created:
-            amount_ingredient.save()
+        amount_ingredient.save()
         amount_ingredients.append(amount_ingredient)
     return amount_ingredients
 

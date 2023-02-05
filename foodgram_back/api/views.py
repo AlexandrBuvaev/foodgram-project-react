@@ -1,7 +1,6 @@
 from io import StringIO
 
 from django.db.models import Sum
-from django.db.utils import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
@@ -19,7 +18,7 @@ from users.models import CustomUser, Subscribe
 from .filters import IngredientsFilterBackend, RecipeFilterBackend
 from .pagination import PageLimitPagination
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (CustomUserSerializer, FullRecipeSerializer,
+from .serializers import (FullRecipeSerializer,
                           IngredientSerializer, RecordRecipeSerializer,
                           SmallRecipeSerializer, SubscribeSerializer,
                           TagSerializer)
@@ -125,19 +124,20 @@ class SubscribeViewSet(viewsets.ViewSet):
     def create(self, request, user_id):
         """Создание подписки."""
         author = get_object_or_404(CustomUser, pk=user_id)
-        if request.user != author:
-            try:
-                Subscribe.objects.create(author=author, user=request.user)
-                serializer = CustomUserSerializer(author,
-                                                  context={'request': request})
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            except IntegrityError:
-                return Response({"message":
-                                "Нельзя подписаться на пользователя дважды."},
-                                status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message": "Нельзя подписатся на самого себя."},
-                        status=status.HTTP_400_BAD_REQUEST)
+        subscribe, created = Subscribe.objects.get_or_create(
+            author=author, user=request.user
+            )
+        # print(subscribe, created)
+        if request.user != author and created:
+            serializer = SubscribeSerializer(author,
+                                             context={'request': request})
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
+        return Response(
+            {"message":
+             "Нельзя подписатся на самого себя и на пользователя дважды."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def destroy(self, request, user_id):
         """Удаление подписки."""
@@ -153,10 +153,10 @@ class FavoriteRecipesViewSet(viewsets.ViewSet):
 
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        try:
-            FavoriteRecipes.objects.create(
-                recipe=recipe, user=request.user
-            )
+        favorite_recipe, created = FavoriteRecipes.objects.get_or_create(
+            recipe=recipe, user=request.user
+        )
+        if created:
             serializer = SmallRecipeSerializer(
                 recipe, context={'request': request}
             )
@@ -164,11 +164,10 @@ class FavoriteRecipesViewSet(viewsets.ViewSet):
                 serializer.data,
                 status=status.HTTP_201_CREATED
             )
-        except IntegrityError:
-            return Response(
-                {"message": 'Нельзя добавить рецепт в избранное дважды.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {"message": 'Нельзя добавить рецепт в избранное дважды.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def destroy(self, request, recipe_id):
         FavoriteRecipes.objects.filter(
@@ -186,10 +185,10 @@ class ShoppingCartRecipesViewSet(viewsets.ViewSet):
 
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        try:
-            ShoppingCart.objects.create(
+        recipe_in_shopping_cart, created = ShoppingCart.objects.get_or_create(
                 recipe=recipe, user=request.user
             )
+        if created:
             serializer = SmallRecipeSerializer(
                 recipe, context={'request': request}
             )
@@ -197,10 +196,9 @@ class ShoppingCartRecipesViewSet(viewsets.ViewSet):
                 serializer.data,
                 status=status.HTTP_201_CREATED
             )
-        except IntegrityError:
-            return Response(
-                {"message": 'Нельзя добавить рецепт в избранное дважды.'},
-                status=status.HTTP_400_BAD_REQUEST
+        return Response(
+            {"message": 'Нельзя добавить рецепт в корзину дважды.'},
+            status=status.HTTP_400_BAD_REQUEST
             )
 
     def destroy(self, request, recipe_id):
@@ -208,6 +206,6 @@ class ShoppingCartRecipesViewSet(viewsets.ViewSet):
             user=request.user, recipe__id=recipe_id
         ).delete()
         return Response(
-            {'message': 'Рецепт удален из избранного.'},
+            {'message': 'Рецепт удален из корзины.'},
             status=status.HTTP_204_NO_CONTENT
         )
