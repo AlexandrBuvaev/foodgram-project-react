@@ -3,9 +3,11 @@ import base64
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
-from recipes.models import AmountIngredients, Ingredient, Recipe, Tag
-from rest_framework import serializers
-from users.models import CustomUser
+from rest_framework import serializers, status
+
+from recipes.models import (AmountIngredients, FavoriteRecipes, Ingredient,
+                            Recipe, ShoppingCart, Tag)
+from users.models import CustomUser, Subscribe
 
 
 class Base64ImageField(serializers.ImageField):
@@ -62,6 +64,21 @@ class SubscribeSerializer(CustomUserSerializer):
     def get_recipes_count(self, obj):
         return obj.recipes.count()
 
+    def validate(self, data):
+        author = self.instance
+        user = self.context['request'].user
+        if Subscribe.objects.filter(author=author, user=user).exists():
+            raise serializers.ValidationError(
+                detail='Нельзя подписаться на пользователя дважды.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if user == author:
+            raise serializers.ValidationError(
+                detail='Нельзя подписаться на самого себя.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
+
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор тегов."""
@@ -106,13 +123,40 @@ class FullAmountIngredientSerializer(serializers.ModelSerializer):
 
 
 class SmallRecipeSerializer(serializers.ModelSerializer):
-    """Сериализатор рецептов."""
 
     class Meta:
         model = Recipe
         fields = (
             'id', 'image', 'name', 'cooking_time',
         )
+
+
+class FavoriteRecipeSerializer(SmallRecipeSerializer):
+    """Сериализатор рецептов."""
+
+    def validate(self, data):
+        recipe = self.instance
+        user = self.context['request'].user
+        if FavoriteRecipes.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                detail='Рецепт уже в избранном.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
+
+
+class ShoppingCartRecipeSerializer(SmallRecipeSerializer):
+    """Сериализатор рецептов."""
+
+    def validate(self, data):
+        recipe = self.instance
+        user = self.context['request'].user
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                detail='Рецепт уже в корзине.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
 
 
 class FullRecipeSerializer(serializers.ModelSerializer):

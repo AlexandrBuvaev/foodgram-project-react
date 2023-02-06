@@ -6,9 +6,8 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (
-    IsAuthenticated, IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
 from recipes.models import (AmountIngredients, FavoriteRecipes, Ingredient,
@@ -18,9 +17,9 @@ from users.models import CustomUser, Subscribe
 from .filters import IngredientsFilterBackend, RecipeFilterBackend
 from .pagination import PageLimitPagination
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (FullRecipeSerializer,
+from .serializers import (FavoriteRecipeSerializer, FullRecipeSerializer,
                           IngredientSerializer, RecordRecipeSerializer,
-                          SmallRecipeSerializer, SubscribeSerializer,
+                          ShoppingCartRecipeSerializer, SubscribeSerializer,
                           TagSerializer)
 
 
@@ -124,20 +123,13 @@ class SubscribeViewSet(viewsets.ViewSet):
     def create(self, request, user_id):
         """Создание подписки."""
         author = get_object_or_404(CustomUser, pk=user_id)
-        subscribe, created = Subscribe.objects.get_or_create(
-            author=author, user=request.user
-            )
-        # print(subscribe, created)
-        if request.user != author and created:
-            serializer = SubscribeSerializer(author,
-                                             context={'request': request})
-            return Response(serializer.data,
-                            status=status.HTTP_201_CREATED)
-        return Response(
-            {"message":
-             "Нельзя подписатся на самого себя и на пользователя дважды."},
-            status=status.HTTP_400_BAD_REQUEST
+        serializer = SubscribeSerializer(
+            author, data=request.data, context={'request': request}
         )
+        serializer.is_valid(raise_exception=True)
+        Subscribe.objects.create(user=self.request.user, author=author)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)
 
     def destroy(self, request, user_id):
         """Удаление подписки."""
@@ -153,21 +145,11 @@ class FavoriteRecipesViewSet(viewsets.ViewSet):
 
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        favorite_recipe, created = FavoriteRecipes.objects.get_or_create(
-            recipe=recipe, user=request.user
-        )
-        if created:
-            serializer = SmallRecipeSerializer(
-                recipe, context={'request': request}
-            )
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-        return Response(
-            {"message": 'Нельзя добавить рецепт в избранное дважды.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        serializer = FavoriteRecipeSerializer(recipe, data=request.data,
+                                              context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        FavoriteRecipes.objects.create(user=self.request.user, recipe=recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, recipe_id):
         FavoriteRecipes.objects.filter(
@@ -185,21 +167,11 @@ class ShoppingCartRecipesViewSet(viewsets.ViewSet):
 
     def create(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        recipe_in_shopping_cart, created = ShoppingCart.objects.get_or_create(
-                recipe=recipe, user=request.user
-            )
-        if created:
-            serializer = SmallRecipeSerializer(
-                recipe, context={'request': request}
-            )
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-        return Response(
-            {"message": 'Нельзя добавить рецепт в корзину дважды.'},
-            status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = ShoppingCartRecipeSerializer(
+            recipe, data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        ShoppingCart.objects.create(recipe=recipe, user=self.request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, recipe_id):
         ShoppingCart.objects.filter(
