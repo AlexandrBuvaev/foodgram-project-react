@@ -47,6 +47,9 @@ class SubscribeSerializer(CustomUserSerializer):
             'email', 'id', 'username', 'first_name',
             'last_name', 'is_subscribed', 'recipes', 'recipes_count'
         )
+        read_only_fields = (
+            'email', 'username', 'first_name', 'last_name'
+        )
 
     def get_recipes(self, obj):
         recipes_limit = int(
@@ -129,6 +132,7 @@ class SmallRecipeSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'image', 'name', 'cooking_time',
         )
+        read_only_fields = ('name', 'cooking_time')
 
 
 class FavoriteRecipeSerializer(SmallRecipeSerializer):
