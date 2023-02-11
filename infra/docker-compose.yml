@@ -8,9 +8,8 @@ services:
       - ./.env
   
   backend:
-    build: 
-      context: ../foodgram_back
-      dockerfile: Dockerfile
+    image: aleksandrbuvaev/foodgram_back
+
     volumes:
       - backend_static_value:/app/static/
       - backend_media_value:/app/media/
