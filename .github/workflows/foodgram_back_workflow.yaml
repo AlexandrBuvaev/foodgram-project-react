@@ -56,7 +56,8 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          key: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          username: ${{ secrets.USER}}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
             cd foodgram-project-react/infra
