@@ -3,7 +3,7 @@ name: Foodgram_back-app workflow
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   tests:
